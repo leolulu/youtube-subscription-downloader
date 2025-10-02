@@ -36,6 +36,7 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         "--remux-video",
         "mp4",
         "--no-playlist",
+        "--mark-watched",
         "-o",
         output_template,
         url,
