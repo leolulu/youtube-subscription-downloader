@@ -4,10 +4,10 @@ import time
 from typing import Dict, List
 
 
-def get_videos(channel_id: str, is_first: bool = False, max_retries: int = 3) -> List[Dict[str, str]]:
+def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, str]]:
     """
     使用yt-dlp查询频道最近视频元数据。
-    查询最近50个视频，如果is_first则返回前10个。
+    查询最近config['query_limit']个视频，如果is_first则返回前config['first_run_limit']个。
     返回列表，按上传日期降序（最新在前）。
     """
     if channel_id.startswith("@"):
@@ -20,14 +20,15 @@ def get_videos(channel_id: str, is_first: bool = False, max_retries: int = 3) ->
     cmd = [
         "yt-dlp",
         "--playlist-end",
-        "5",  # TODO: change back to 50
+        str(config['query_limit']),
         "--proxy",
-        "socks5://127.0.0.1:10808",
+        config['proxy'],
         "--dump-json",
         url,
     ]
 
     videos = []
+    max_retries = config['max_retries']
     for attempt in range(max_retries):
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         output = result.stdout.strip()
@@ -64,7 +65,7 @@ def get_videos(channel_id: str, is_first: bool = False, max_retries: int = 3) ->
 
         # 应用首次限制
         if is_first:
-            videos = videos[:10]
+            videos = videos[:config['first_run_limit']]
 
         return videos
 

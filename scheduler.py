@@ -1,11 +1,14 @@
-import schedule
 import time
 from typing import Callable
 
-def setup_schedule(check_func: Callable, interval_min: int = 30) -> None:
+import schedule
+
+
+def setup_schedule(check_func: Callable, config: dict) -> None:
     """
-    设置定时任务，每interval_min分钟执行check_func。
+    设置定时任务，每config['interval_min']分钟执行check_func。
     """
+    interval_min = config['interval_min']
     schedule.every(interval_min).minutes.do(check_func)
 
 def run_loop() -> None:

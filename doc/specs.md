@@ -64,8 +64,27 @@
 - **位置**：项目根目录。
 - **模块**：config_reader.py 负责读取。
 
-### 3.2 未来扩展
-- 单独config.json for 参数（e.g., {"query_limit": 50, "interval_min": 30}），但原型硬编码。
+### 3.2 config.toml
+- **格式**：TOML文件，定义运行参数。
+- **必需参数**：
+  - query_limit: 整数，查询视频上限 (默认50)。
+  - first_run_limit: 整数，首次运行限制 (默认10)。
+  - interval_min: 整数，定时间隔分钟 (默认30)。
+  - download_format: 字符串，yt-dlp格式 (默认"bestvideo*[filesize<100M][ext=mp4]+bestaudio")。
+  - max_retries: 整数，重试次数 (默认3)。
+  - proxy: 字符串，代理设置 (默认"socks5://127.0.0.1:10808")。
+- **示例**：
+  ```
+  query_limit = 50
+  first_run_limit = 10
+  interval_min = 30
+  download_format = "bestvideo*[filesize<100M][ext=mp4]+bestaudio"
+  max_retries = 3
+  proxy = "socks5://127.0.0.1:10808"
+  ```
+- **位置**：项目根目录。
+- **模块**：config_reader.py 负责加载和验证。
+- **行为**：首次运行生成默认文件，提示用户编辑后重启；缺少参数或无效值时中断并提示。
 
 ## 4. 数据库设计 (SQLite: download_history.db)
 
@@ -128,10 +147,14 @@ project/
 ```
 
 ### 5.1 config_reader.py
-- **职责**：读取channels.txt，返回list[str] ID列表。
-- **函数**：get_channel_ids(file_path='channels.txt') → list[str]
-- **实现**：open(file), for line in lines: if not line.strip() or line.startswith('#'): continue; ids.append(line.strip())
-- **异常**：FileNotFoundError → 提示创建文件。
+- **职责**：读取channels.txt返回ID列表；加载config.toml返回参数字典。
+- **函数**：
+  - get_channel_ids(file_path='channels.txt') → list[str]
+  - load_config(file_path='config.toml') → dict
+- **实现**：
+  - get_channel_ids: open(file), for line in lines: if not line.strip() or line.startswith('#'): continue; ids.append(line.strip())
+  - load_config: 使用tomlkit解析TOML；验证必需键和类型；文件不存在生成默认并中断；无效配置中断。
+- **异常**：FileNotFoundError → 提示创建文件；TOML错误 → 中断提示。
 
 ### 5.2 channel_checker.py
 - **职责**：查询频道视频元数据。
@@ -224,20 +247,21 @@ flowchart TD
 ```
 yt-dlp
 schedule
+tomlkit
 ```
 
 ### 7.2 安装
-- `pip install -r requirements.txt`
+- `uv pip install -r requirements.txt`
 - yt-dlp更新：`yt-dlp -U`
 - Python 3.8+，sqlite3内置。
 
 ### 7.3 运行
 - 创建channels.txt（至少一个ID）。
-- `python main.py`
+- 编辑config.toml（首次运行会生成默认，修改后重启）。
+- `uv run main.py`
 - 输出：app.log；视频在downloads/；DB自动生成。
 
 ## 8. 未来优化点
-- **配置化**：config.json for 参数（上限、间隔）。
 - **日期锚点**：history添加last_check_date，按日期过滤新视频。
 - **测试**：单元测试（unittest/pytest），mock subprocess。
 - **增强**：并发下载（threading）、通知（email）、字幕、API集成（YouTube Data API）。
@@ -245,5 +269,6 @@ schedule
 
 ## 9. 版本历史
 - v1.0 (2025-10-01)：初始原型设计，基于讨论。
+- v1.1 (2025-10-02)：添加TOML配置系统（config.toml），参数配置化；更新文档。
 
 此文档作为蓝图，确保实现不偏离。若有变更，更新文档。

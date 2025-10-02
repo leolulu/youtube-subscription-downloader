@@ -45,3 +45,5 @@ Thumbs.db
 download_history.db
 app.log
 channels.txt
+
+config.toml

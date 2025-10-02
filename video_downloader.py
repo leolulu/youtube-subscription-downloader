@@ -3,8 +3,10 @@ import subprocess
 import time
 from typing import Optional
 
+import utils
 
-def download_video(video_id: str, channel_name: str, upload_date: str, title: str, max_retries: int = 1) -> Optional[str]:
+
+def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
     """
     下载单个视频到downloads/文件夹。
     返回文件路径如果成功，否则None。
@@ -13,44 +15,26 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         os.makedirs("downloads")
 
     # 清理标题用于文件名
-    safe_title = (
-        title.replace("/", "_")
-        .replace("\\", "_")
-        .replace(":", "_")
-        .replace("*", "_")
-        .replace("?", "_")
-        .replace('"', "_")
-        .replace("<", "_")
-        .replace(">", "_")
-        .replace("|", "_")
-    )
-    safe_channel = (
-        channel_name.replace("/", "_")
-        .replace("\\", "_")
-        .replace(":", "_")
-        .replace("*", "_")
-        .replace("?", "_")
-        .replace('"', "_")
-        .replace("<", "_")
-        .replace(">", "_")
-        .replace("|", "_")
-    )
+    safe_title = utils.sanitize_filename(title)
+    safe_channel = utils.sanitize_filename(channel_name)
 
     output_template = f"downloads/{safe_channel}_{upload_date}_{safe_title}.%(ext)s"
     url = f"https://www.youtube.com/watch?v={video_id}"
     cmd = [
         "yt-dlp",
         "--proxy",
-        "socks5://127.0.0.1:10808",
+        config["proxy"],
         "-f",
-        "bestvideo*[filesize<100M][ext=mp4]+bestaudio",
+        config["download_format"],
         "--remux-video",
         "mp4",
+        "--no-playlist",
         "-o",
         output_template,
         url,
     ]
 
+    max_retries = config["max_retries"]
     for attempt in range(max_retries):
         try:
             result = subprocess.run(cmd, check=True)
