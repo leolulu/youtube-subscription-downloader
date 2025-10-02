@@ -260,37 +260,36 @@ project/
 
 ## 6. 整体流程图
 
-使用Mermaid描述主循环：
+使用Mermaid描述主循环（简化英文标签以兼容GitHub渲染）：
 
 ```mermaid
 flowchart TD
-    A[启动 main.py] --> B[config_reader: 加载config.toml, 读取channels.txt 获取handle列表]
-    B --> C[history_manager: init_db 创建表/索引]
-    C --> D[logging: setup app.log; signal handlers]
-    D --> E[立即执行: check_and_download(config)]
-    E --> F[逐频道: channel_id in handles]
-    F --> G[history_manager: has_records_for_channel(channel_id)?]
-    G -->|否 首次| H[channel_checker: get_videos --playlist-end=query_limit, 限first_run_limit]
-    G -->|是 已抓取| I[channel_checker: get_videos --playlist-end=query_limit, 全处理]
-    H --> J[逐视频: history_manager.is_downloaded(video_id)?]
+    A[Start main.py] --> B[Load config.toml and channels.txt]
+    B --> C[Init DB tables and indexes]
+    C --> D[Setup logging and signals]
+    D --> E[Run check_and_download immediately]
+    E --> F[For each channel]
+    F --> G[Has records for channel?]
+    G -->|No first time| H[Get videos limit first_run_limit]
+    G -->|Yes| I[Get videos limit query_limit]
+    H --> J[For each video check downloaded?]
     I --> J
-    J --> K{新视频?}
-    K -->|否| L[debug 已下载; 继续下一个视频]
-    K -->|是| M[video_downloader: download_video -f download_format --remux mp4 --proxy, sanitize文件名]
-    M --> N{成功?}
-    N -->|是| O[history_manager: mark_downloaded; log_download 'success' file_path str(is_first); info 成功]
-    N -->|否| P[log_download 'failed' None str(is_first); error 失败]
+    J --> K{New video?}
+    K -->|No| L[Next video]
+    K -->|Yes| M[Download video with format and proxy]
+    M --> N{Success?}
+    N -->|Yes| O[Mark downloaded and log success]
+    N -->|No| P[Log failure]
     O --> L
     P --> L
-    L --> Q[继续下一个频道; if new_downloads==0: info 无新]
-    Q --> R[循环结束]
-    R --> S[scheduler: setup_schedule every interval_min min do wrapper]
-    S --> T[run_loop: while True run_pending sleep(1)]
-    T --> U{信号/异常?}
-    U -->|KeyboardInterrupt| V[info 停止; sys.exit(0)]
-    U -->|其他| W[error exc_info; continue]
-    V --> X[结束]
-    W --> T
+    L --> Q[Next channel or end loop]
+    Q --> R[Setup schedule every interval_min minutes]
+    R --> S[Run loop while True]
+    S --> T{Signal or error?}
+    T -->|Interrupt| U[Stop gracefully]
+    T -->|Other| V[Log error continue]
+    U --> W[End]
+    V --> S
 ```
 
 ## 7. 依赖与安装
