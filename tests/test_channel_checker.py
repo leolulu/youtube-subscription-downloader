@@ -3,36 +3,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from channel_checker import get_videos
+from src.downloader.channel_checker import get_videos
 
 
 class TestChannelChecker:
-    @patch('subprocess.run')
-    def test_get_videos_uc_channel(self, mock_run, mock_subprocess):
-        """测试UC_频道ID格式。"""
-        mock_run.return_value = Mock(returncode=0, stdout=json.dumps({
-            "_type": "video",
-            "id": "video1",
-            "title": "Test Video",
-            "upload_date": "20250101",
-            "uploader": "Test Channel"
-        }) + "\n" + json.dumps({"_type": "playlist"}))
-
-        config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
-        
-        assert len(videos) == 1
-        assert videos[0]["video_id"] == "video1"
-        assert videos[0]["title"] == "Test Video"  # 清理后
-        assert videos[0]["upload_date"] == "20250101"
-        assert videos[0]["channel_name"] == "Test Channel"
-        
-        mock_run.assert_called_once()
-        args = mock_run.call_args[0][0]
-        assert args[1] == "--playlist-end"
-        assert args[2] == "50"
-        assert args[3] == "--proxy"
-        assert args[4] == "test_proxy"
 
     @patch('subprocess.run')
     def test_get_videos_at_channel(self, mock_run, mock_subprocess):
@@ -91,7 +65,7 @@ class TestChannelChecker:
         mock_run.return_value = Mock(returncode=0, stdout=stdout)
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", True, config)  # is_first=True
+        videos = get_videos("testchannel", True, config)  # is_first=True
         
         assert len(videos) == 10  # 限制为10
 
@@ -101,7 +75,7 @@ class TestChannelChecker:
         mock_run.return_value = Mock(returncode=0, stdout="")
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert videos == []
 
@@ -119,7 +93,7 @@ class TestChannelChecker:
         mock_run.return_value = Mock(returncode=0, stdout=stdout)
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert len(videos) == 1
 
@@ -137,7 +111,7 @@ class TestChannelChecker:
         mock_run.return_value = Mock(returncode=0, stdout=stdout)
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert len(videos) == 1  # 只解析有效行
 
@@ -157,7 +131,7 @@ class TestChannelChecker:
         ]
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 2, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert len(videos) == 1
         assert mock_run.call_count == 2  # 重试一次
@@ -174,7 +148,7 @@ class TestChannelChecker:
         }), stderr="This video is available to this channel's members")
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert len(videos) == 1  # 仍解析stdout
 
@@ -190,7 +164,7 @@ class TestChannelChecker:
         }))
 
         config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test_proxy"}
-        videos = get_videos("UC123", False, config)
+        videos = get_videos("testchannel", False, config)
         
         assert videos[0]["title"] == "Test _ Video _ with slashes"
         assert videos[0]["channel_name"] == "Channel _ Name"

@@ -13,7 +13,7 @@ def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
     if not os.path.exists(file_path):
         placeholder_content = """# YouTube订阅频道列表
 # 可以使用#进行行级注释
-# 每行添加一个频道handle (e.g., MoneyXYZ) 或 UC_ ID
+# 每行添加一个频道handle (e.g., MoneyXYZ)
 # 示例:
 # MoneyXYZ
 """

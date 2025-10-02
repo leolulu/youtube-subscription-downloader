@@ -12,8 +12,6 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
     """
     if channel_id.startswith("@"):
         url = f"https://www.youtube.com/{channel_id}/videos"
-    elif channel_id.startswith("UC_"):
-        url = f"https://www.youtube.com/channel/{channel_id}/videos"
     else:
         # 纯handle名，自动添加@
         url = f"https://www.youtube.com/@{channel_id}/videos"
