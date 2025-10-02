@@ -9,10 +9,10 @@
 - **订阅管理**：纯文本配置文件（channels.txt），每行一个频道handle（e.g., @MoneyXYZ），支持#注释。
 - **定时检查**：使用schedule库，每config.toml中interval_min分钟检查一次新视频。
 - **视频查询**：使用yt-dlp --dump-json获取频道最近视频元数据（不下载），支持代理。
-- **下载控制**：yt-dlp下载指定格式（默认bestvideo*[filesize<100M][ext=mp4]+bestaudio --remux-video mp4），文件名格式：{频道名}_{上传日期}_{标题}.mp4，保存到config.toml中download_dir文件夹（支持本地/SMB UNC路径）。
+- **下载控制**：yt-dlp下载指定格式（默认bestvideo*[filesize<100M][ext=mp4]+bestaudio --remux-video mp4），文件名格式：{频道名}_{上传日期}_{标题}.mp4，保存到config.toml中download_dir文件夹（支持本地/SMB UNC路径）。支持根目录 `.cookie` 文件自动加载（Netscape 格式，用于会员视频等）。
 - **历史管理**：SQLite数据库（download_history.db），history表记录已下载视频ID避免重复，logs表记录下载详情（成功/失败、文件路径、是否首次）。
 - **首次抓取限制**：每个频道首次运行时，只下载最近first_run_limit个视频；后续运行处理最近query_limit个中的新视频，避免海量下载（包括新添加频道）。
-- **错误处理**：基本try-except，重试max_retries次，日志记录（app.log，INFO级别，文件+控制台）。
+- **错误处理**：基本try-except，重试max_retries次，标准化日志记录（使用 Python logging 模块，INFO/WARNING/ERROR 级别，输出到 app.log 和控制台）。
 - **运行方式**：uv run main.py，后台循环运行（支持SIGINT/SIGTERM优雅停止）。
 - **测试**：使用pytest覆盖核心模块（config_reader, channel_checker, history_manager, scheduler, video_downloader, main）。
 - **工具依赖**：yt-dlp需预安装并在PATH中。
@@ -84,6 +84,7 @@
   - max_retries: 整数，重试次数 (e.g., 3)
   - proxy: 字符串，代理设置 (e.g., 'socks5://127.0.0.1:10808')
   - download_dir: 字符串，下载目录路径 (e.g., 'downloads' 或 '\\\\192.168.1.100\\share')
+- **Cookie 支持**：无需配置参数，在项目根目录放置以 `.cookie` 结尾的文件（Netscape 格式，从浏览器导出 YouTube cookies），脚本自动检测并使用第一个文件（通过 utils.add_cookies_to_cmd），日志记录使用情况。用于访问受限内容如会员视频。
 - **示例**：
   ```
   query_limit = 10
@@ -169,7 +170,7 @@ project/
 │   │   └── video_downloader.py # F4, F6
 │   └── utils/
 │       ├── __init__.py
-│       └── utils.py           # sanitize_filename
+│       └── utils.py           # sanitize_filename, add_cookies_to_cmd (cookie 支持)
 └── tests/                    # 单元测试
     ├── conftest.py
     ├── test_channel_checker.py
@@ -194,12 +195,13 @@ project/
 - **实现**：
   - URL = f"https://www.youtube.com/{channel_id or '@'+channel_id}/videos"
   - cmd = ['yt-dlp', '--playlist-end', str(config['query_limit']), '--proxy', config['proxy'], '--dump-json', URL]
+  - add_cookies_to_cmd(cmd)  # 自动添加 --cookies 如果根目录有 .cookie 文件
   - output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip().split('\n')
   - for line in output: if line: video_info = json.loads(line)；if '_type'=='video': extract/清理字段，append。
   - if is_first: videos = videos[:config['first_run_limit']]
-  - 重试：max_retries次，指数退避，即使returncode!=0也解析stdout（e.g., 会员视频警告）。
-- **异常**：subprocess.CalledProcessError → 日志stderr，重试，返回[] if 最终失败。
-- **依赖**：yt-dlp, json, subprocess, time。
+  - 重试：max_retries次，指数退避，即使returncode!=0也解析stdout（e.g., 会员视频警告，使用 logger.warning/info）。
+- **异常**：subprocess.CalledProcessError → logger.warning，重试，返回[] if 最终失败；JSONDecodeError → logger.warning。
+- **依赖**：yt-dlp, json, subprocess, time, utils.add_cookies_to_cmd。
 
 ### 5.3 src/core/history_manager.py
 - **职责**：DB操作。
@@ -221,10 +223,11 @@ project/
   - output_template = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.%(ext)s")
   - URL = f"https://www.youtube.com/watch?v={video_id}"
   - cmd = ['yt-dlp', '--proxy', config['proxy'], '-f', config['download_format'], '--remux-video', 'mp4', '--no-playlist', '-o', output_template, URL]
-  - for attempt in max_retries: subprocess.run(check=True)；if success: return os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4") if exists else None
+  - add_cookies_to_cmd(cmd)  # 自动添加 --cookies 如果根目录有 .cookie 文件
+  - for attempt in max_retries: subprocess.run(check=True)；if success: return os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4") if exists else None (logger.warning if 未找到)
   - 重试：指数退避2**attempt。
-- **异常**：CalledProcessError → 日志，return None。
-- **依赖**：yt-dlp, subprocess, os, time, utils.sanitize_filename。
+- **异常**：CalledProcessError → logger.error，return None。
+- **依赖**：yt-dlp, subprocess, os, time, utils.sanitize_filename, utils.add_cookies_to_cmd。
 
 ### 5.5 src/core/scheduler.py
 - **职责**：定时执行。
@@ -255,8 +258,10 @@ project/
 
 ### 5.7 src/utils/utils.py
 - **职责**：工具函数。
-- **函数**：sanitize_filename(name: str) → str：替换 " /\\:*?"<>| " → "_"
-- **使用**：文件名清理。
+- **函数**：
+  - sanitize_filename(name: str) → str：替换 " /\\:*?"<>| " → "_"
+  - add_cookies_to_cmd(cmd: list)：检查根目录 `.cookie` 文件，使用第一个插入 --cookies 参数到 cmd[1:2]，logger.info 使用日志。
+- **使用**：文件名清理；yt-dlp 命令前调用添加 cookie 支持。
 
 ## 6. 整体流程图
 
@@ -312,7 +317,7 @@ pytest-cov
 ### 7.3 运行
 - 编辑channels.txt（添加handle，至少一个）。
 - 运行`uv run main.py`：首次生成config.toml示例，编辑后重启。
-- 输出：app.log (INFO事件)；视频在download_dir；DB自动生成。
+- 输出：标准化日志到 app.log (logging.INFO 及以上) 和控制台；视频在download_dir；DB自动生成。
 - 停止：Ctrl+C (优雅退出)。
 
 ## 8. 测试设计

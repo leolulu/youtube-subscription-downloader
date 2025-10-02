@@ -67,6 +67,7 @@
      - `max_retries = 3`：重试次数
      - `proxy = "socks5://127.0.0.1:10808"`：代理 URL（空字符串禁用）
      - `download_dir = "downloads"`：下载路径（支持 UNC 如 `"\\\\server\\share"`）
+     - **Cookie 支持**：在项目根目录放置以 `.cookie` 结尾的文件（Netscape 格式，从浏览器导出 YouTube cookies），脚本自动检测并使用第一个文件增强下载（如访问会员视频）。日志会记录使用情况。
    - 示例：
      ```
      query_limit = 10
@@ -90,7 +91,7 @@
    - 首次：初始化数据库，下载每个频道的前 `first_run_limit` 个视频。
    - 后续：定时检查新视频，下载到 `download_dir`。
    - 文件名格式：`{频道名}_{YYYYMMDD}_{标题}.mp4`（非法字符替换为 `_`）。
-   - 日志：`logs/app.log`（事件记录）和控制台输出。
+   - 日志：统一使用 Python logging 模块，输出到 `logs/app.log`（INFO 及以上级别）和控制台。所有 print 已替换为 logger，支持 INFO/WARNING/ERROR 级别，便于调试。
 
 3. 停止：按 `Ctrl+C`，脚本优雅退出。
 
@@ -116,11 +117,11 @@ pytest -v --cov=. --cov-report=term-missing
 - 覆盖率报告显示缺失行，便于维护。
 
 ## 故障排除
-- **yt-dlp 错误**：确保 `yt-dlp` 在 PATH 中，更新版本。检查代理/网络。
-- **下载失败**：查看 `app.log`，常见原因：视频私有/地区限制、格式不支持（调整 `download_format`）。
+- **yt-dlp 错误**：确保 `yt-dlp` 在 PATH 中，更新版本。检查代理/网络，或添加 `.cookie` 文件绕过限制。
+- **下载失败**：查看 `app.log`（使用 logger.error），常见原因：视频私有/地区限制、格式不支持（调整 `download_format`）。
 - **数据库锁定**：SQLite 单用户，避免并发编辑。
 - **Windows UNC 路径**：确保 SMB 共享权限，yt-dlp 支持但需测试。
-- **无新视频**：检查频道 handle 正确，代理有效。
+- **无新视频**：检查频道 handle 正确，代理有效，或 cookie 是否过期。
 
 ## 贡献
 1. Fork 仓库。
