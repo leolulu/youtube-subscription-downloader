@@ -3,7 +3,7 @@ import subprocess
 import time
 from typing import Optional
 
-import utils
+from src.utils.utils import sanitize_filename
 
 
 def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
@@ -15,8 +15,8 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         os.makedirs("downloads")
 
     # 清理标题用于文件名
-    safe_title = utils.sanitize_filename(title)
-    safe_channel = utils.sanitize_filename(channel_name)
+    safe_title = sanitize_filename(title)
+    safe_channel = sanitize_filename(channel_name)
 
     output_template = f"downloads/{safe_channel}_{upload_date}_{safe_title}.%(ext)s"
     url = f"https://www.youtube.com/watch?v={video_id}"

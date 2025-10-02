@@ -3,11 +3,11 @@ import os
 import signal
 import sys
 
-from channel_checker import get_videos
-from config_reader import get_channel_ids, load_config
-from history_manager import has_records_for_channel, init_db, is_downloaded, log_download, mark_downloaded
-from scheduler import run_loop, setup_schedule
-from video_downloader import download_video
+from src.config.config_reader import get_channel_ids, load_config
+from src.core.history_manager import has_records_for_channel, init_db, is_downloaded, log_download, mark_downloaded
+from src.core.scheduler import run_loop, setup_schedule
+from src.downloader.channel_checker import get_videos
+from src.downloader.video_downloader import download_video
 
 # 设置日志
 if not os.path.exists("logs"):
