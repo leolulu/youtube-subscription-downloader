@@ -77,18 +77,18 @@
 ### 3.2 config.toml
 - **格式**：TOML文件，定义运行参数。
 - **必需参数**（默认值在注释）：
-  - query_limit: 整数，查询视频上限 (e.g., 50)
-  - first_run_limit: 整数，首次运行限制 (e.g., 10)
-  - interval_min: 整数，定时间隔分钟 (e.g., 30)
+  - query_limit: 整数，查询视频上限 (e.g., 10)
+  - first_run_limit: 整数，首次运行限制 (e.g., 5)
+  - interval_min: 整数，定时间隔分钟 (e.g., 1440)
   - download_format: 字符串，yt-dlp格式 (e.g., 'bestvideo*[filesize<100M][ext=mp4]+bestaudio')
   - max_retries: 整数，重试次数 (e.g., 3)
   - proxy: 字符串，代理设置 (e.g., 'socks5://127.0.0.1:10808')
   - download_dir: 字符串，下载目录路径 (e.g., 'downloads' 或 '\\\\192.168.1.100\\share')
 - **示例**：
   ```
-  query_limit = 50
-  first_run_limit = 10
-  interval_min = 30
+  query_limit = 10
+  first_run_limit = 5
+  interval_min = 1440
   download_format = "bestvideo*[filesize<100M][ext=mp4]+bestaudio"
   max_retries = 3
   proxy = "socks5://127.0.0.1:10808"
@@ -133,7 +133,7 @@
 - **has_records_for_channel(channel_id)**：SELECT COUNT(*) FROM history WHERE channel_id = ? > 0 → bool（判断首次）。
 - **is_downloaded(video_id)**：SELECT 1 FROM history WHERE video_id = ? → bool。
 - **mark_downloaded(video_id, channel_id)**：INSERT OR IGNORE INTO history。
-- **log_download(video_id, channel_id, status, file_path=None, is_first='false')**：INSERT INTO logs。
+- **log_download(video_id, channel_id, status, file_path=None, is_first='false')**：INSERT logs。
 - **事务**：下载成功时原子插入history + logs（当前独立，但可扩展）。
 - **位置**：项目根目录（.gitignore排除）。
 

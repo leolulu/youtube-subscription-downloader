@@ -8,8 +8,8 @@
 
 ## 特性
 - **订阅管理**：通过 `channels.txt` 配置频道 handle（e.g., `@MoneyXYZ`），支持注释。
-- **定时下载**：每隔指定分钟（默认 30 分钟）检查新视频。
-- **智能限制**：首次运行每个频道限 10 个视频，后续检查最近 50 个中的新视频。
+- **定时下载**：每隔指定分钟（默认 1440 分钟，即 24 小时）检查新视频。
+- **智能限制**：首次运行每个频道限 5 个视频，后续检查最近 10 个中的新视频。
 - **下载格式**：默认高质量 MP4（文件大小 <100MB），支持自定义格式和代理（SOCKS5 等）。
 - **历史记录**：SQLite 数据库跟踪已下载视频，日志记录成功/失败详情。
 - **错误处理**：自动重试（默认 3 次），优雅停止（Ctrl+C）。
@@ -49,28 +49,29 @@
    - 示例：
      ```
      # YouTube 订阅频道列表
-     # 科技频道
-     @MoneyXYZ
-     # 音乐频道
-     @EXSIREMUSIC
+     # 可以使用#进行行级注释
+     # 每行添加一个频道handle (e.g., MoneyXYZ)
+     # 示例:
+     # MoneyXYZ
+     # @EXSIREMUSIC
      ```
    - 如果文件不存在，首次运行会创建示例并提示编辑。
 
 2. **运行参数** (`config.toml`)：
    - 首次运行 `main.py` 会生成默认 `config.toml`，编辑后重启。
-   - 必需参数：
-     - `query_limit`：查询视频上限（默认 50）
-     - `first_run_limit`：首次运行限制（默认 10）
-     - `interval_min`：检查间隔分钟（默认 30）
-     - `download_format`：yt-dlp 格式（默认 `"bestvideo*[filesize<100M][ext=mp4]+bestaudio"`）
-     - `max_retries`：重试次数（默认 3）
-     - `proxy`：代理 URL（默认 `"socks5://127.0.0.1:10808"`，空字符串禁用）
-     - `download_dir`：下载路径（默认 `"downloads"`，支持 UNC 如 `"\\\\server\\share"`）
+   - 必需参数（默认值）：
+     - `query_limit = 10`：查询视频上限
+     - `first_run_limit = 5`：首次运行限制
+     - `interval_min = 1440`：检查间隔分钟（24 小时）
+     - `download_format = "bestvideo*[filesize<100M][ext=mp4]+bestaudio"`：yt-dlp 格式
+     - `max_retries = 3`：重试次数
+     - `proxy = "socks5://127.0.0.1:10808"`：代理 URL（空字符串禁用）
+     - `download_dir = "downloads"`：下载路径（支持 UNC 如 `"\\\\server\\share"`）
    - 示例：
      ```
-     query_limit = 50
-     first_run_limit = 10
-     interval_min = 30
+     query_limit = 10
+     first_run_limit = 5
+     interval_min = 1440
      download_format = "bestvideo*[filesize<100M][ext=mp4]+bestaudio"
      max_retries = 3
      proxy = "socks5://127.0.0.1:10808"
