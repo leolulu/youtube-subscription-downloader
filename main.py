@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import signal
 import sys
 
@@ -28,6 +29,9 @@ def check_and_download(config):
     """
     检查并下载新视频的核心函数。
     """
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    
     try:
         channel_ids = get_channel_ids()
         if not channel_ids:
@@ -73,6 +77,11 @@ def check_and_download(config):
         logger.info("检查循环完成")
     except Exception as e:
         logger.error(f"检查循环错误: {e}", exc_info=True)
+    finally:
+        # 清理临时目录
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+            logger.info("临时目录已清理")
 
 
 def signal_handler(sig, frame):

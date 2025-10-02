@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import subprocess
 import time
 from typing import Optional
@@ -16,16 +17,16 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
     返回文件路径如果成功，否则None。
     """
     download_dir = config["download_dir"]
+    temp_dir = "temp"
 
-    # 只为本地路径创建目录，SMB路径由yt-dlp处理
-    if not download_dir.startswith("\\\\") and not os.path.exists(download_dir):
-        os.makedirs(download_dir, exist_ok=True)
+    # 创建临时目录
+    os.makedirs(temp_dir, exist_ok=True)
 
     # 清理标题用于文件名
     safe_title = sanitize_filename(title)
     safe_channel = sanitize_filename(channel_name)
 
-    output_template = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.%(ext)s")
+    temp_output_template = os.path.join(temp_dir, f"{safe_channel}_{upload_date}_{safe_title}.%(ext)s")
     url = f"https://www.youtube.com/watch?v={video_id}"
     cmd = [
         "yt-dlp",
@@ -38,7 +39,7 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         "--no-playlist",
         "--mark-watched",
         "-o",
-        output_template,
+        temp_output_template,
         url,
     ]
 
@@ -49,12 +50,22 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         try:
             result = subprocess.run(cmd, check=True)
             if result.returncode == 0:
-                # 构建文件路径 (假设ext=mp4)
-                file_path = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4")
-                if os.path.exists(file_path):
-                    return file_path
+                # 构建临时文件路径 (假设ext=mp4)
+                temp_file_path = os.path.join(temp_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4")
+                if os.path.exists(temp_file_path):
+                    # 构建目标文件路径
+                    target_file_path = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4")
+                    
+                    # 为本地目标目录创建目录（UNC路径不创建，由移动处理）
+                    if not download_dir.startswith("\\\\") and not os.path.exists(download_dir):
+                        os.makedirs(download_dir, exist_ok=True)
+                    
+                    # 移动文件到目标目录
+                    shutil.move(temp_file_path, target_file_path)
+                    logger.info(f"文件已移动到目标目录: {target_file_path}")
+                    return target_file_path
                 else:
-                    logger.warning(f"下载成功但文件未找到: {file_path}")
+                    logger.warning(f"下载成功但临时文件未找到: {temp_file_path}")
                     return None
         except subprocess.CalledProcessError as e:
             if attempt < max_retries - 1:
