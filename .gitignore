@@ -47,3 +47,5 @@ app.log
 channels.txt
 
 config.toml
+
+*.cookie
