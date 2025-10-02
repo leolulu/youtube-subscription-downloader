@@ -60,7 +60,7 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
                 time.sleep(2**attempt)
                 continue
             else:
-                logger.error(f"下载视频 {video_id} 失败: {e}")
+                logger.error(f"下载视频 {video_id} 失败: {e}\n此错误可能由于 yt-dlp 未更新导致，请运行 'yt-dlp -U' 更新版本。")
                 return None
 
     return None

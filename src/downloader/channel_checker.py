@@ -47,7 +47,7 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
                 time.sleep(2**attempt)  # 指数退避
                 continue
             else:  # 最终失败，但仍解析当前output
-                pass
+                logger.error(f"查询频道 {channel_id} 最终失败。此错误可能由于 yt-dlp 未更新导致，请运行 'yt-dlp -U' 更新版本。")
         else:  # 成功
             if not output:
                 break
