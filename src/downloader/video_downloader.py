@@ -1,9 +1,12 @@
+import logging
 import os
 import subprocess
 import time
 from typing import Optional
 
 from src.utils.utils import add_cookies_to_cmd, sanitize_filename
+
+logger = logging.getLogger(__name__)
 
 
 def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
@@ -50,14 +53,14 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
                 if os.path.exists(file_path):
                     return file_path
                 else:
-                    print(f"下载成功但文件未找到: {file_path}")
+                    logger.warning(f"下载成功但文件未找到: {file_path}")
                     return None
         except subprocess.CalledProcessError as e:
             if attempt < max_retries - 1:
                 time.sleep(2**attempt)
                 continue
             else:
-                print(f"下载视频 {video_id} 失败: {e}")
+                logger.error(f"下载视频 {video_id} 失败: {e}")
                 return None
 
     return None

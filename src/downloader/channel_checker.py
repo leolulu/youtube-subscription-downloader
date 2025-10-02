@@ -1,9 +1,12 @@
 import json
+import logging
 import subprocess
 import time
 from typing import Dict, List
 
 from src.utils.utils import add_cookies_to_cmd
+
+logger = logging.getLogger(__name__)
 
 
 def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, str]]:
@@ -35,10 +38,10 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         output = result.stdout.strip()
         if result.returncode != 0:
-            print(f"查询频道 {channel_id} 尝试 {attempt + 1} returncode {result.returncode}: {result.stderr}")
+            logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} returncode {result.returncode}: {result.stderr}")
             # 即使returncode != 0，也尝试解析stdout (可能有有效JSON)
             if "This video is available to this channel's members" in result.stderr:
-                print(f"频道 {channel_id} 存在会员视频，但继续解析可用视频。")
+                logger.info(f"频道 {channel_id} 存在会员视频，但继续解析可用视频。")
                 attempt = max_retries  # 不再重试
             if attempt < max_retries - 1:
                 time.sleep(2**attempt)  # 指数退避
@@ -62,7 +65,7 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
                         }
                         videos.append(video)
                 except json.JSONDecodeError as e:
-                    print(f"JSON解析错误 for 频道 {channel_id}: {e}")
+                    logger.warning(f"JSON解析错误 for 频道 {channel_id}: {e}")
                     continue
 
         # 应用首次限制

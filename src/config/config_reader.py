@@ -1,7 +1,10 @@
+import logging
 import os
 import sys
 
 import tomlkit
+
+logger = logging.getLogger(__name__)
 
 
 def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
@@ -19,7 +22,7 @@ def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
 """
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(placeholder_content)
-        print(f"已创建示例配置文件 {file_path}。请编辑添加您的频道ID，然后重新运行。")
+        logger.info(f"已创建示例配置文件 {file_path}。请编辑添加您的频道ID，然后重新运行。")
         sys.exit(1)
 
     channel_ids = []
@@ -63,9 +66,9 @@ def load_config(file_path: str = "config.toml") -> dict:
         # 创建默认配置文件
         with open(file_path, "w", encoding="utf-8") as f:
             tomlkit.dump(default_config, f)
-        print(f"已创建默认配置文件 {file_path}。")
-        print("请编辑 config.toml 文件，设置您的配置参数，然后重新运行程序。")
-        print("必需参数: " + ", ".join(required_keys.keys()))
+        logger.info(f"已创建默认配置文件 {file_path}。")
+        logger.info("请编辑 config.toml 文件，设置您的配置参数，然后重新运行程序。")
+        logger.info("必需参数: " + ", ".join(required_keys.keys()))
         sys.exit(1)
 
     try:
@@ -75,26 +78,26 @@ def load_config(file_path: str = "config.toml") -> dict:
         # 验证所有必需键是否存在
         missing_keys = [key for key in required_keys if key not in config]
         if missing_keys:
-            print(f"错误: config.toml 缺少以下必需参数: {', '.join(missing_keys)}")
-            print("请添加缺失参数并重新运行。示例:")
+            logger.error(f"config.toml 缺少以下必需参数: {', '.join(missing_keys)}")
+            logger.error("请添加缺失参数并重新运行。示例:")
             for key, desc in required_keys.items():
                 if key in missing_keys:
-                    print(f"  {key} = {default_config[key]}  # {desc}")
+                    logger.error(f"  {key} = {default_config[key]}  # {desc}")
             sys.exit(1)
 
         # 类型验证（简单检查）
         for key, value in config.items():
             if key in ["query_limit", "first_run_limit", "interval_min", "max_retries"]:
                 if not isinstance(value, int) or value <= 0:
-                    print(f"错误: {key} 必须是正整数，当前值: {value}")
+                    logger.error(f"{key} 必须是正整数，当前值: {value}")
                     sys.exit(1)
             elif key in ["download_format", "proxy", "download_dir"]:
                 if not isinstance(value, str):
-                    print(f"错误: {key} 必须是字符串，当前值: {value}")
+                    logger.error(f"{key} 必须是字符串，当前值: {value}")
                     sys.exit(1)
 
         return dict(config)  # 转换为普通dict
     except Exception as e:
-        print(f"加载配置错误: {e}")
-        print("请检查 config.toml 文件格式是否正确 (TOML 格式)。")
+        logger.error(f"加载配置错误: {e}")
+        logger.error("请检查 config.toml 文件格式是否正确 (TOML 格式)。")
         sys.exit(1)
