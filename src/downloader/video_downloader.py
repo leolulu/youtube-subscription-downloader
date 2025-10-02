@@ -8,17 +8,21 @@ from src.utils.utils import sanitize_filename
 
 def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
     """
-    下载单个视频到downloads/文件夹。
+    下载单个视频到配置的download_dir文件夹。
+    支持本地路径和SMB UNC路径 (e.g., \\\\192.168.1.100\\share)。
     返回文件路径如果成功，否则None。
     """
-    if not os.path.exists("downloads"):
-        os.makedirs("downloads")
+    download_dir = config["download_dir"]
+
+    # 只为本地路径创建目录，SMB路径由yt-dlp处理
+    if not download_dir.startswith("\\\\") and not os.path.exists(download_dir):
+        os.makedirs(download_dir, exist_ok=True)
 
     # 清理标题用于文件名
     safe_title = sanitize_filename(title)
     safe_channel = sanitize_filename(channel_name)
 
-    output_template = f"downloads/{safe_channel}_{upload_date}_{safe_title}.%(ext)s"
+    output_template = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.%(ext)s")
     url = f"https://www.youtube.com/watch?v={video_id}"
     cmd = [
         "yt-dlp",
@@ -40,7 +44,7 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
             result = subprocess.run(cmd, check=True)
             if result.returncode == 0:
                 # 构建文件路径 (假设ext=mp4)
-                file_path = f"downloads/{safe_channel}_{upload_date}_{safe_title}.mp4"
+                file_path = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4")
                 if os.path.exists(file_path):
                     return file_path
                 else:

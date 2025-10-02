@@ -46,6 +46,7 @@ def load_config(file_path: str = "config.toml") -> dict:
         "download_format": "字符串，yt-dlp格式 (e.g., 'bestvideo*[filesize<100M][ext=mp4]+bestaudio')",
         "max_retries": "整数，重试次数 (e.g., 3)",
         "proxy": "字符串，代理设置 (e.g., 'socks5://127.0.0.1:10808')",
+        "download_dir": "字符串，下载目录路径 (e.g., 'downloads' 或 '\\\\192.168.1.100\\share')",
     }
 
     default_config = {
@@ -55,6 +56,7 @@ def load_config(file_path: str = "config.toml") -> dict:
         "download_format": "bestvideo*[filesize<100M][ext=mp4]+bestaudio",
         "max_retries": 3,
         "proxy": "socks5://127.0.0.1:10808",
+        "download_dir": "downloads",
     }
 
     if not os.path.exists(file_path):
@@ -86,11 +88,7 @@ def load_config(file_path: str = "config.toml") -> dict:
                 if not isinstance(value, int) or value <= 0:
                     print(f"错误: {key} 必须是正整数，当前值: {value}")
                     sys.exit(1)
-            elif key == "download_format":
-                if not isinstance(value, str):
-                    print(f"错误: {key} 必须是字符串，当前值: {value}")
-                    sys.exit(1)
-            elif key == "proxy":
+            elif key in ["download_format", "proxy", "download_dir"]:
                 if not isinstance(value, str):
                     print(f"错误: {key} 必须是字符串，当前值: {value}")
                     sys.exit(1)
