@@ -20,7 +20,7 @@ def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(placeholder_content)
         print(f"已创建示例配置文件 {file_path}。请编辑添加您的频道ID，然后重新运行。")
-        return []
+        sys.exit(1)
 
     channel_ids = []
     with open(file_path, "r", encoding="utf-8") as f:
