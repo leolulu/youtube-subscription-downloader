@@ -260,10 +260,10 @@ project/
 
 ## 6. 整体流程图
 
-使用Mermaid描述主循环（简化英文标签以兼容GitHub渲染）：
+使用Mermaid描述主循环
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[Start main.py] --> B[Load config.toml and channels.txt]
     B --> C[Init DB tables and indexes]
     C --> D[Setup logging and signals]
