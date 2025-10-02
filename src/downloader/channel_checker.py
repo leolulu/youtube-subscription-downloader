@@ -3,6 +3,8 @@ import subprocess
 import time
 from typing import Dict, List
 
+from src.utils.utils import add_cookies_to_cmd
+
 
 def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, str]]:
     """
@@ -18,15 +20,17 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
     cmd = [
         "yt-dlp",
         "--playlist-end",
-        str(config['query_limit']),
+        str(config["query_limit"]),
         "--proxy",
-        config['proxy'],
+        config["proxy"],
         "--dump-json",
         url,
     ]
 
+    add_cookies_to_cmd(cmd)
+
     videos = []
-    max_retries = config['max_retries']
+    max_retries = config["max_retries"]
     for attempt in range(max_retries):
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         output = result.stdout.strip()
@@ -63,7 +67,7 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
 
         # 应用首次限制
         if is_first:
-            videos = videos[:config['first_run_limit']]
+            videos = videos[: config["first_run_limit"]]
 
         return videos
 

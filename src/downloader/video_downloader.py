@@ -3,7 +3,7 @@ import subprocess
 import time
 from typing import Optional
 
-from src.utils.utils import sanitize_filename
+from src.utils.utils import add_cookies_to_cmd, sanitize_filename
 
 
 def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
@@ -37,6 +37,8 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
         output_template,
         url,
     ]
+
+    add_cookies_to_cmd(cmd)
 
     max_retries = config["max_retries"]
     for attempt in range(max_retries):
