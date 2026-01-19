@@ -30,6 +30,8 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
     url = f"https://www.youtube.com/watch?v={video_id}"
     cmd = [
         "yt-dlp",
+        "--js-runtimes",
+        "node",
         "--proxy",
         config["proxy"],
         "-f",
