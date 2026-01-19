@@ -59,9 +59,9 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
             if attempt < max_retries - 1:
                 # 还有重试机会，输出简短的重试信息
                 if stderr_info["has_critical"]:
-                    logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} 失败: {stderr_info['summary']}，重试中...")
+                    logger.warning(f"查询频道 {channel_id} 尝试{attempt + 1}次，失败: {stderr_info['summary']}，重试中...")
                 else:
-                    logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} 有警告，重试中...")
+                    logger.warning(f"查询频道 {channel_id} 尝试{attempt + 1}次，有警告，重试中...")
                 time.sleep(2**attempt)  # 指数退避
                 continue
             # else: 最后一次尝试，继续往下解析 output
