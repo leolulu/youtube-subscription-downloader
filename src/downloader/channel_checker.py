@@ -4,6 +4,7 @@ import subprocess
 import time
 from typing import Dict, List
 
+from src.utils.stderr_parser import parse_ytdlp_stderr
 from src.utils.utils import add_cookies_to_cmd
 
 logger = logging.getLogger(__name__)
@@ -34,24 +35,43 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
 
     videos = []
     max_retries = config["max_retries"]
+    last_stderr_info = None  # 保存最后一次的 stderr 解析结果
+
     for attempt in range(max_retries):
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         output = result.stdout.strip()
+
         if result.returncode != 0:
-            logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} returncode {result.returncode}: {result.stderr}")
-            # 即使returncode != 0，也尝试解析stdout (可能有有效JSON)
-            if "This video is available to this channel's members" in result.stderr:
-                logger.info(f"频道 {channel_id} 存在会员视频，但继续解析可用视频。")
-                attempt = max_retries  # 不再重试
+            # 解析 stderr
+            stderr_info = parse_ytdlp_stderr(result.stderr)
+            last_stderr_info = stderr_info
+
+            # 详细的 stderr 内容只记录到日志文件（DEBUG 级别）
+            logger.debug(f"查询频道 {channel_id} 尝试 {attempt + 1} yt-dlp stderr:\n{result.stderr}")
+
+            # 会员视频特殊处理
+            if "会员专属视频" in stderr_info["critical_errors"]:
+                logger.info(f"频道 {channel_id} 存在会员视频，继续解析可用视频")
+                # 不再重试，直接解析当前 output
+                break
+
+            # 判断是否需要重试
             if attempt < max_retries - 1:
+                # 还有重试机会，输出简短的重试信息
+                if stderr_info["has_critical"]:
+                    logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} 失败: {stderr_info['summary']}，重试中...")
+                else:
+                    logger.warning(f"查询频道 {channel_id} 尝试 {attempt + 1} 有警告，重试中...")
                 time.sleep(2**attempt)  # 指数退避
                 continue
-            else:  # 最终失败，但仍解析当前output
-                logger.error(f"查询频道 {channel_id} 最终失败。此错误可能由于 yt-dlp 未更新导致，请运行 'yt-dlp -U' 更新版本。")
-        else:  # 成功
+            # else: 最后一次尝试，继续往下解析 output
+
+        else:  # returncode == 0，成功
+            last_stderr_info = None  # 清除错误信息
             if not output:
                 break
 
+        # 解析 stdout 中的 JSON
         for line in output.split("\n"):
             if line.strip():
                 try:
@@ -67,6 +87,23 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON解析错误 for 频道 {channel_id}: {e}")
                     continue
+
+        # 根据实际结果输出最终状态
+        if last_stderr_info:
+            # 有 stderr 错误/警告
+            if videos:
+                # 有警告但成功获取了视频
+                if last_stderr_info["has_critical"]:
+                    logger.warning(
+                        f"查询频道 {channel_id} 有警告 ({last_stderr_info['summary']})，但成功获取 {len(videos)} 个视频"
+                    )
+                else:
+                    logger.info(
+                        f"查询频道 {channel_id} 成功获取 {len(videos)} 个视频（{last_stderr_info['summary']}，详见日志）"
+                    )
+            else:
+                # 真正的失败：没有获取到任何视频
+                logger.error(f"查询频道 {channel_id} 失败: {last_stderr_info['summary']}")
 
         # 应用首次限制
         if is_first:

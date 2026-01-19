@@ -14,13 +14,23 @@ from src.downloader.video_downloader import download_video
 if not os.path.exists("logs"):
     os.makedirs("logs")
 
+# 日志格式
+log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+# 文件 handler: DEBUG 级别（记录所有详细信息）
+file_handler = logging.FileHandler("logs/app.log", encoding="utf-8")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(log_format)
+
+# 控制台 handler: INFO 级别（只显示重要信息）
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(log_format)
+
+# 配置根 logger
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("logs/app.log", encoding="utf-8"),
-        logging.StreamHandler(sys.stdout),
-    ],
+    level=logging.DEBUG,  # 根级别设为 DEBUG，让各 handler 自己过滤
+    handlers=[file_handler, console_handler],
 )
 logger = logging.getLogger(__name__)
 
