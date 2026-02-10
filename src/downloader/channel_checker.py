@@ -23,6 +23,8 @@ def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[
         url = f"https://www.youtube.com/@{channel_id}/videos"
     cmd = [
         "yt-dlp",
+        "--js-runtimes",
+        "node",
         "--playlist-end",
         str(config["query_limit"]),
         "--proxy",
@@ -95,13 +97,9 @@ def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[
             if videos:
                 # 有警告但成功获取了视频
                 if last_stderr_info["has_critical"]:
-                    logger.warning(
-                        f"查询频道 {channel_id} 有警告 ({last_stderr_info['summary']})，但成功获取 {len(videos)} 个视频"
-                    )
+                    logger.warning(f"查询频道 {channel_id} 有警告 ({last_stderr_info['summary']})，但成功获取 {len(videos)} 个视频")
                 else:
-                    logger.info(
-                        f"查询频道 {channel_id} 成功获取 {len(videos)} 个视频（{last_stderr_info['summary']}，详见日志）"
-                    )
+                    logger.info(f"查询频道 {channel_id} 成功获取 {len(videos)} 个视频（{last_stderr_info['summary']}，详见日志）")
             else:
                 # 真正的失败：没有获取到任何视频
                 logger.error(f"查询频道 {channel_id} 失败: {last_stderr_info['summary']}")
