@@ -1,12 +1,53 @@
-import sys
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from main import check_and_download, main, signal_handler
+from main import check_and_download, filter_videos_by_anchor, main, signal_handler
 
 
 class TestMain:
+    @patch('main.is_downloaded')
+    def test_filter_videos_by_anchor_found(self, mock_is_downloaded):
+        """测试非首次运行时可找到锚点并截断旧视频。"""
+        videos = [
+            {"video_id": "v0", "title": "V0"},
+            {"video_id": "v1", "title": "V1"},
+            {"video_id": "v2", "title": "V2"},
+            {"video_id": "v3", "title": "V3"},
+        ]
+        mock_is_downloaded.side_effect = lambda video_id: video_id == "v2"
+
+        filtered = filter_videos_by_anchor(videos, "channel1", False)
+
+        assert [video["video_id"] for video in filtered] == ["v0", "v1", "v2"]
+
+    @patch('main.is_downloaded')
+    def test_filter_videos_by_anchor_no_anchor(self, mock_is_downloaded):
+        """测试非首次运行时未找到锚点则保留全部视频。"""
+        videos = [
+            {"video_id": "v0", "title": "V0"},
+            {"video_id": "v1", "title": "V1"},
+            {"video_id": "v2", "title": "V2"},
+        ]
+        mock_is_downloaded.return_value = False
+
+        filtered = filter_videos_by_anchor(videos, "channel1", False)
+
+        assert filtered == videos
+
+    @patch('main.is_downloaded')
+    def test_filter_videos_by_anchor_first_run_skip_filter(self, mock_is_downloaded):
+        """测试首次运行时不做锚点过滤。"""
+        videos = [
+            {"video_id": "v0", "title": "V0"},
+            {"video_id": "v1", "title": "V1"},
+        ]
+
+        filtered = filter_videos_by_anchor(videos, "channel1", True)
+
+        assert filtered == videos
+        mock_is_downloaded.assert_not_called()
+
     @patch('main.get_channel_ids')
     @patch('main.has_records_for_channel')
     @patch('main.get_videos')
@@ -34,12 +75,14 @@ class TestMain:
         mock_file_path = "/path/to/downloaded.mp4"
         mock_download_video.return_value = mock_file_path
         
-        check_and_download(mock_config)
+        with patch('main.filter_videos_by_anchor', return_value=mock_videos) as mock_filter_videos_by_anchor:
+            check_and_download(mock_config)
         
         # 检查调用链
         mock_get_channel_ids.assert_called_once()
         mock_has_records.assert_called_once_with("channel1")
         mock_get_videos.assert_called_once_with("channel1", True, mock_config)
+        mock_filter_videos_by_anchor.assert_called_once_with(mock_videos, "channel1", True)
         mock_is_downloaded.assert_called_once_with("video1")
         mock_download_video.assert_called_once_with("video1", "Test Channel", "20250101", "Test Video", mock_config)
         mock_mark_downloaded.assert_called_once_with("video1", "channel1")
@@ -65,8 +108,10 @@ class TestMain:
         mock_is_downloaded.return_value = False
         mock_download_video.return_value = None  # 失败
         
-        check_and_download(mock_config)
+        with patch('main.filter_videos_by_anchor', return_value=mock_get_videos.return_value) as mock_filter_videos_by_anchor:
+            check_and_download(mock_config)
         
+        mock_filter_videos_by_anchor.assert_called_once_with(mock_get_videos.return_value, "channel1", True)
         mock_log_download.assert_called_once_with("video1", "channel1", "failed", None, "True")
         mock_mark_downloaded.assert_not_called()
         mock_logger.error.assert_called_once_with(f"下载失败: video1")
@@ -77,7 +122,7 @@ class TestMain:
         """测试无频道时警告并返回。"""
         mock_get_channel_ids.return_value = []
         mock_config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test"}
-        
+
         check_and_download(mock_config)
         
         mock_logger.warning.assert_called_once_with("没有找到频道ID，请检查channels.txt")
@@ -112,9 +157,11 @@ class TestMain:
         mock_get_videos.return_value = [{"video_id": "video1", "title": "Test Video", "upload_date": "20250101", "channel_name": "Test Channel"}]
         mock_is_downloaded.return_value = True  # 已下载
         mock_config = {"query_limit": 50, "first_run_limit": 10, "max_retries": 3, "proxy": "test"}
-        
-        check_and_download(mock_config)
-        
+
+        with patch('main.filter_videos_by_anchor', return_value=mock_get_videos.return_value) as mock_filter_videos_by_anchor:
+            check_and_download(mock_config)
+
+        mock_filter_videos_by_anchor.assert_called_once_with(mock_get_videos.return_value, "channel1", True)
         mock_logger.debug.assert_called_once_with("视频已下载: video1")
         # download_video 不被调用
         with patch('main.download_video') as mock_download:

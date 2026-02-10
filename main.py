@@ -35,6 +35,38 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def filter_videos_by_anchor(videos, channel_id: str, is_first: bool):
+    """
+    基于动态锚点过滤视频列表。
+
+    规则：
+    - 首次运行不做锚点过滤。
+    - 非首次运行时，从列表末尾（最旧）向前找第一个已下载视频作为锚点。
+    - 仅保留锚点及其更新的视频，丢弃锚点之前的更旧视频。
+    """
+    if is_first or not videos:
+        return videos
+
+    anchor_index = None
+    for index in range(len(videos) - 1, -1, -1):
+        video_id = videos[index].get("video_id")
+        if video_id and is_downloaded(video_id):
+            anchor_index = index
+            break
+
+    if anchor_index is None:
+        logger.info(f"频道 {channel_id} 在本批次未找到已下载锚点，保留全部 {len(videos)} 个视频")
+        return videos
+
+    filtered_videos = videos[: anchor_index + 1]
+    dropped_count = len(videos) - len(filtered_videos)
+    anchor_video_id = videos[anchor_index].get("video_id", "unknown")
+    logger.info(
+        f"频道 {channel_id} 锚点={anchor_video_id}，保留 {len(filtered_videos)} 个，丢弃 {dropped_count} 个旧视频"
+    )
+    return filtered_videos
+
+
 def check_and_download(config):
     """
     检查并下载新视频的核心函数。
@@ -61,6 +93,8 @@ def check_and_download(config):
                 continue
 
             logger.info(f"从频道 {channel_id} 拉取 {len(videos)} 个视频")
+            videos = filter_videos_by_anchor(videos, channel_id, is_first)
+            logger.info(f"频道 {channel_id} 过滤后待处理 {len(videos)} 个视频")
 
             new_downloads = 0
             for video in videos:
