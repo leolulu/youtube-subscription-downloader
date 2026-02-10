@@ -8,7 +8,7 @@
 ### 1.2 关键特性
 - **订阅管理**：纯文本配置文件（channels.txt），每行一个频道handle（e.g., @MoneyXYZ），支持#注释。
 - **定时检查**：使用schedule库，每config.toml中interval_min分钟检查一次新视频。
-- **视频查询**：使用yt-dlp --dump-json获取频道最近视频元数据（不下载），支持代理。
+- **视频查询**：使用yt-dlp --js-runtimes node --dump-json获取频道最近视频元数据（不下载），支持代理。
 - **下载控制**：yt-dlp下载指定格式（默认bestvideo*[filesize<100M][ext=mp4]+bestaudio --remux-video mp4），文件名格式：{频道名}_{上传日期}_{标题}.mp4，保存到config.toml中download_dir文件夹（支持本地/SMB UNC路径）。支持根目录 `.cookie` 文件自动加载（Netscape 格式，用于会员视频等）。
 - **历史管理**：SQLite数据库（download_history.db），history表记录已下载视频ID避免重复，logs表记录下载详情（成功/失败、文件路径、是否首次）。
 - **首次抓取限制**：每个频道首次运行时，只下载最近first_run_limit个视频；后续运行处理最近query_limit个中的新视频，避免海量下载（包括新添加频道）。
@@ -28,7 +28,7 @@
 
 ### 2.1 功能需求
 - **F1**：读取channels.txt，解析handle列表（忽略空行、#注释）；文件不存在时创建示例并中断。
-- **F2**：定时（interval_min min）逐频道查询最近视频元数据（ID、标题、上传日期YYYYMMDD、频道名），使用yt-dlp --dump-json --playlist-end query_limit，支持代理和重试。
+- **F2**：定时（interval_min min）逐频道查询最近视频元数据（ID、标题、上传日期YYYYMMDD、频道名），使用yt-dlp --js-runtimes node --dump-json --playlist-end query_limit，支持代理和重试。
   - 查询上限：query_limit个视频。
   - 首次（该频道history为空）：限first_run_limit个。
 - **F3**：检查视频ID是否已下载（SQLite history表）。
@@ -194,7 +194,7 @@ project/
 - **函数**：get_videos(channel_id: str, is_first: bool, config: dict) → list[dict] {'video_id': str, 'title': str (清理/\\), 'upload_date': str (YYYYMMDD), 'channel_name': str (清理)}
 - **实现**：
   - URL = f"https://www.youtube.com/{channel_id or '@'+channel_id}/videos"
-  - cmd = ['yt-dlp', '--playlist-end', str(config['query_limit']), '--proxy', config['proxy'], '--dump-json', URL]
+  - cmd = ['yt-dlp', '--js-runtimes', 'node', '--playlist-end', str(config['query_limit']), '--proxy', config['proxy'], '--dump-json', URL]
   - add_cookies_to_cmd(cmd)  # 自动添加 --cookies 如果根目录有 .cookie 文件
   - output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip().split('\n')
   - for line in output: if line: video_info = json.loads(line)；if '_type'=='video': extract/清理字段，append。
@@ -222,7 +222,7 @@ project/
   - safe_title/channel = utils.sanitize_filename (替换空格/:/\*?"<>|)
   - output_template = os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.%(ext)s")
   - URL = f"https://www.youtube.com/watch?v={video_id}"
-  - cmd = ['yt-dlp', '--proxy', config['proxy'], '-f', config['download_format'], '--remux-video', 'mp4', '--no-playlist', '-o', output_template, URL]
+  - cmd = ['yt-dlp', '--js-runtimes', 'node', '--proxy', config['proxy'], '-f', config['download_format'], '--remux-video', 'mp4', '--no-playlist', '-o', output_template, URL]
   - add_cookies_to_cmd(cmd)  # 自动添加 --cookies 如果根目录有 .cookie 文件
   - for attempt in max_retries: subprocess.run(check=True)；if success: return os.path.join(download_dir, f"{safe_channel}_{upload_date}_{safe_title}.mp4") if exists else None (logger.warning if 未找到)
   - 重试：指数退避2**attempt。

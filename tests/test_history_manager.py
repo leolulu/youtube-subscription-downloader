@@ -3,35 +3,51 @@ import sqlite3
 
 import pytest
 
-from history_manager import has_records_for_channel, init_db, is_downloaded, log_download, mark_downloaded
+from src.core.history_manager import (
+    has_records_for_channel,
+    init_db,
+    is_downloaded,
+    log_download,
+    mark_downloaded,
+)
 
 
 class TestHistoryManager:
     def test_init_db_creates_tables(self, temp_db_path):
         """测试初始化DB创建表和索引。"""
         init_db(temp_db_path)
-        
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
-        
+
         # 检查history表
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='history'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='history'"
+        )
         assert cursor.fetchone() is not None
-        
+
         # 检查logs表
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='logs'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='logs'"
+        )
         assert cursor.fetchone() is not None
-        
+
         # 检查索引
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='history' AND name='idx_channel'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='history' AND name='idx_channel'"
+        )
         assert cursor.fetchone() is not None
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='logs' AND name='idx_channel_log'")
+
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='logs' AND name='idx_channel_log'"
+        )
         assert cursor.fetchone() is not None
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='logs' AND name='idx_time'")
+
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='logs' AND name='idx_time'"
+        )
         assert cursor.fetchone() is not None
-        
+
         conn.close()
 
     def test_has_records_for_channel_no_records(self, temp_db_path):
@@ -60,7 +76,7 @@ class TestHistoryManager:
         """测试标记新视频插入记录。"""
         init_db(temp_db_path)
         mark_downloaded("video1", "test_channel", temp_db_path)
-        
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM history WHERE video_id = ?", ("video1",))
@@ -75,7 +91,7 @@ class TestHistoryManager:
         init_db(temp_db_path)
         mark_downloaded("video1", "test_channel", temp_db_path)
         mark_downloaded("video1", "test_channel", temp_db_path)  # 重复
-        
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM history WHERE video_id = ?", ("video1",))
@@ -86,8 +102,15 @@ class TestHistoryManager:
     def test_log_download_success(self, temp_db_path):
         """测试记录成功下载日志。"""
         init_db(temp_db_path)
-        log_download("video1", "test_channel", "success", "/path/to/file.mp4", "true", temp_db_path)
-        
+        log_download(
+            "video1",
+            "test_channel",
+            "success",
+            "/path/to/file.mp4",
+            "true",
+            temp_db_path,
+        )
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM logs WHERE video_id = ?", ("video1",))
@@ -104,7 +127,7 @@ class TestHistoryManager:
         """测试记录失败下载日志。"""
         init_db(temp_db_path)
         log_download("video1", "test_channel", "failed", None, "false", temp_db_path)
-        
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM logs WHERE video_id = ?", ("video1",))
@@ -117,9 +140,11 @@ class TestHistoryManager:
     def test_log_download_multiple(self, temp_db_path):
         """测试多次记录日志。"""
         init_db(temp_db_path)
-        log_download("video1", "test_channel", "success", "/path1.mp4", "false", temp_db_path)
+        log_download(
+            "video1", "test_channel", "success", "/path1.mp4", "false", temp_db_path
+        )
         log_download("video2", "test_channel", "failed", None, "false", temp_db_path)
-        
+
         conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM logs")
