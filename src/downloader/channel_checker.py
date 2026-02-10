@@ -2,7 +2,7 @@ import json
 import logging
 import subprocess
 import time
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from src.utils.stderr_parser import parse_ytdlp_stderr
 from src.utils.utils import add_cookies_to_cmd
@@ -10,7 +10,7 @@ from src.utils.utils import add_cookies_to_cmd
 logger = logging.getLogger(__name__)
 
 
-def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, str]]:
+def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[Dict[str, str]]:
     """
     使用yt-dlp查询频道最近视频元数据。
     查询最近config['query_limit']个视频，如果is_first则返回前config['first_run_limit']个。
@@ -38,6 +38,7 @@ def get_videos(channel_id: str, is_first: bool, config: dict) -> List[Dict[str, 
     last_stderr_info = None  # 保存最后一次的 stderr 解析结果
 
     for attempt in range(max_retries):
+        logger.debug(f"Querying channel {channel_id} command: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         output = result.stdout.strip()
 

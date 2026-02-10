@@ -3,14 +3,14 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from src.utils.utils import add_cookies_to_cmd, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
 
-def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict) -> Optional[str]:
+def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict[str, Any]) -> Optional[str]:
     """
     下载单个视频到配置的download_dir文件夹。
     支持本地路径和SMB UNC路径 (e.g., \\\\192.168.1.100\\share)。
@@ -50,6 +50,7 @@ def download_video(video_id: str, channel_name: str, upload_date: str, title: st
     max_retries = config["max_retries"]
     for attempt in range(max_retries):
         try:
+            logger.debug(f"Downloading video {video_id} command: {' '.join(cmd)}")
             result = subprocess.run(cmd, check=True)
             if result.returncode == 0:
                 # 构建临时文件路径 (假设ext=mp4)
