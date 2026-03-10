@@ -1,11 +1,22 @@
+import unittest
 from unittest.mock import patch
 
-import pytest
-
-from main import check_and_download, filter_videos_by_anchor, main, signal_handler
+from main import check_and_download, filter_videos_by_anchor, main, parse_args, signal_handler
 
 
-class TestMain:
+class TestMain(unittest.TestCase):
+    def test_parse_args_once_flag(self):
+        """测试 --once 参数解析。"""
+        args = parse_args(["--once"])
+
+        assert args.once is True
+
+    def test_parse_args_default(self):
+        """测试默认不启用一次性模式。"""
+        args = parse_args([])
+
+        assert args.once is False
+
     @patch('main.is_downloaded')
     def test_filter_videos_by_anchor_found(self, mock_is_downloaded):
         """测试非首次运行时可找到锚点并截断旧视频。"""
@@ -191,7 +202,7 @@ class TestMain:
         mock_run_loop.side_effect = KeyboardInterrupt
         
         # 模拟入口点执行
-        main()
+        main([])
         # 注意：由于main.py使用if __name__，这里测试核心逻辑
         mock_signal.assert_any_call(2, signal_handler)
         mock_signal.assert_any_call(15, signal_handler)
@@ -213,9 +224,32 @@ class TestMain:
         mock_logger.info.assert_any_call("脚本停止")  # KeyboardInterrupt处理
 
     @patch('main.load_config')
+    @patch('main.init_db')
+    @patch('main.check_and_download')
+    @patch('main.setup_schedule')
+    @patch('main.run_loop')
+    @patch('main.signal.signal')
+    @patch('main.logger')
+    def test_main_once_mode_skips_loop(self, mock_logger, mock_signal, mock_run_loop, mock_setup_schedule, mock_check_and_download, mock_init_db, mock_load_config):
+        """测试一次性模式执行后不进入调度循环。"""
+        mock_config = {"interval_min": 30}
+        mock_load_config.return_value = mock_config
+
+        main(["--once"])
+
+        mock_signal.assert_any_call(2, signal_handler)
+        mock_signal.assert_any_call(15, signal_handler)
+        mock_load_config.assert_called_once()
+        mock_init_db.assert_called_once()
+        mock_check_and_download.assert_called_once_with(mock_config)
+        mock_setup_schedule.assert_not_called()
+        mock_run_loop.assert_not_called()
+        mock_logger.info.assert_any_call("一次性模式执行完成，程序退出")
+
+    @patch('main.load_config')
     def test_main_config_load_failure(self, mock_load_config):
         """测试配置加载失败时退出。"""
         mock_load_config.side_effect = SystemExit(1)
-        
-        with pytest.raises(SystemExit):
-            main()
+
+        with self.assertRaises(SystemExit):
+            main([])

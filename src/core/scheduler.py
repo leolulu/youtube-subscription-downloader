@@ -1,10 +1,12 @@
+from collections.abc import Callable
 import time
-from typing import Callable
 
 import schedule
 
+from src.types import ScheduleConfig
 
-def setup_schedule(check_func: Callable, config: dict) -> None:
+
+def setup_schedule(check_func: Callable[[], None], config: ScheduleConfig) -> None:
     """
     设置定时任务，每config['interval_min']分钟执行check_func。
     """

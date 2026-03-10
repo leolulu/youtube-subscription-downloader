@@ -1,5 +1,6 @@
 import sqlite3
-from typing import Optional
+
+from src.types import DownloadStatus
 
 DB_PATH = "download_history.db"
 
@@ -81,8 +82,8 @@ def mark_downloaded(video_id: str, channel_id: str, db_path: str = DB_PATH) -> N
 def log_download(
     video_id: str,
     channel_id: str,
-    status: str,
-    file_path: Optional[str] = None,
+    status: DownloadStatus,
+    file_path: str | None = None,
     is_first_for_channel: str = "false",
     db_path: str = DB_PATH,
 ) -> None:

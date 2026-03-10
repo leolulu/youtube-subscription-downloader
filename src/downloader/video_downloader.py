@@ -3,14 +3,14 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Any, Optional
 
+from src.types import DownloadConfig
 from src.utils.utils import add_cookies_to_cmd, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
 
-def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: dict[str, Any]) -> Optional[str]:
+def download_video(video_id: str, channel_name: str, upload_date: str, title: str, config: DownloadConfig) -> str | None:
     """
     下载单个视频到配置的download_dir文件夹。
     支持本地路径和SMB UNC路径 (e.g., \\\\192.168.1.100\\share)。

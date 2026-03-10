@@ -2,15 +2,16 @@ import json
 import logging
 import subprocess
 import time
-from typing import Any, Dict, List
 
+from src.types import QueryConfig, VideoInfo
 from src.utils.stderr_parser import parse_ytdlp_stderr
+from src.utils.stderr_parser import ParsedYtDlpStderr
 from src.utils.utils import add_cookies_to_cmd
 
 logger = logging.getLogger(__name__)
 
 
-def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[Dict[str, str]]:
+def get_videos(channel_id: str, is_first: bool, config: QueryConfig) -> list[VideoInfo]:
     """
     使用yt-dlp查询频道最近视频元数据。
     查询最近config['query_limit']个视频，如果is_first则返回前config['first_run_limit']个。
@@ -35,9 +36,9 @@ def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[
 
     add_cookies_to_cmd(cmd)
 
-    videos = []
+    videos: list[VideoInfo] = []
     max_retries = config["max_retries"]
-    last_stderr_info = None  # 保存最后一次的 stderr 解析结果
+    last_stderr_info: ParsedYtDlpStderr | None = None  # 保存最后一次的 stderr 解析结果
 
     for attempt in range(max_retries):
         logger.debug(f"Querying channel {channel_id} command: {' '.join(cmd)}")
@@ -55,11 +56,10 @@ def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[
             # 会员视频特殊处理
             if "会员专属视频" in stderr_info["critical_errors"]:
                 logger.info(f"频道 {channel_id} 存在会员视频，继续解析可用视频")
-                # 不再重试，直接解析当前 output
-                break
+                # 不再重试，但继续解析当前 stdout 中可用的视频数据
 
             # 判断是否需要重试
-            if attempt < max_retries - 1:
+            if attempt < max_retries - 1 and "会员专属视频" not in stderr_info["critical_errors"]:
                 # 还有重试机会，输出简短的重试信息
                 if stderr_info["has_critical"]:
                     logger.warning(f"查询频道 {channel_id} 尝试{attempt + 1}次，失败: {stderr_info['summary']}，重试中...")
@@ -80,7 +80,7 @@ def get_videos(channel_id: str, is_first: bool, config: dict[str, Any]) -> List[
                 try:
                     video_info = json.loads(line)
                     if video_info.get("_type") == "video":
-                        video = {
+                        video: VideoInfo = {
                             "video_id": video_info.get("id", ""),
                             "title": video_info.get("title", "").replace("/", "_").replace("\\", "_"),  # 清理文件名
                             "upload_date": video_info.get("upload_date", ""),  # YYYYMMDD

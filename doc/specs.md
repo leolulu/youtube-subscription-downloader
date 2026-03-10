@@ -13,11 +13,12 @@
 - **历史管理**：SQLite数据库（download_history.db），history表记录已下载视频ID避免重复，logs表记录下载详情（成功/失败、文件路径、是否首次）。
 - **首次抓取限制**：每个频道首次运行时，只下载最近first_run_limit个视频；后续运行处理最近query_limit个中的新视频，避免海量下载（包括新添加频道）。
 - **错误处理**：基本try-except，重试max_retries次，标准化日志记录（使用 Python logging 模块，INFO/WARNING/ERROR 级别，输出到 app.log 和控制台）。
-- **运行方式**：uv run main.py，后台循环运行（支持SIGINT/SIGTERM优雅停止）。
+- **运行方式**：默认使用 `uv run main.py` 后台循环运行（支持SIGINT/SIGTERM优雅停止）；使用 `uv run main.py --once` 时只执行一轮检查后退出。
 - **测试**：使用pytest覆盖核心模块（config_reader, channel_checker, history_manager, scheduler, video_downloader, main）。
 - **工具依赖**：yt-dlp需预安装并在PATH中。
 
 ### 1.3 假设与约束
+- Python 最低支持版本为 3.10，代码允许使用 `list[str]`、`dict[str, Any]`、`X | None` 等新式 typing 语法。
 - 个人使用，不考虑商用/法律条款（遵守YouTube ToS）。
 - yt-dlp需预安装并定期更新（pip install yt-dlp）。
 - 无并发下载、无通知、无GUI，但模块设计便于未来扩展。

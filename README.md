@@ -1,6 +1,6 @@
 # YouTube 订阅视频下载器
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/Tests-Pytest-green)](https://pytest.org/)
 
@@ -19,7 +19,8 @@
 **注意**：仅限个人非商业使用，遵守 YouTube 服务条款。`yt-dlp` 需自行安装并更新。
 
 ## 先决条件
-- Python 3.8+
+- Python 3.10+
+- 项目已按 Python 3.10+ 作为最低支持版本维护，可使用 `list[str]`、`X | None` 等新式 typing 语法。
 - `yt-dlp`（命令行工具）：[安装指南](https://github.com/yt-dlp/yt-dlp#installation)
 - 可选：代理工具（如 Shadowsocks）用于绕过网络限制。
 
@@ -84,12 +85,19 @@
 1. 确保配置完成（编辑 `channels.txt` 和 `config.toml`）。
 2. 运行脚本：
    ```
-   uv run main.py
-   # 或
-   python main.py
+    uv run main.py
+    # 或
+    python main.py
    ```
+   - 如果只想执行一轮检查并在完成后退出，可使用：
+     ```
+     uv run main.py --once
+     # 或
+     python main.py --once
+     ```
    - 首次：初始化数据库，下载每个频道的前 `first_run_limit` 个视频。
    - 后续：定时检查新视频，下载到 `download_dir`。
+   - `--once`：只执行当前这一轮检查和下载，不注册定时任务，不进入循环。
    - 文件名格式：`{频道名}_{YYYYMMDD}_{标题}.mp4`（非法字符替换为 `_`）。
    - 日志：统一使用 Python logging 模块，输出到 `logs/app.log`（INFO 及以上级别）和控制台。所有 print 已替换为 logger，支持 INFO/WARNING/ERROR 级别，便于调试。
 

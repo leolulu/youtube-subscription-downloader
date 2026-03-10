@@ -19,7 +19,7 @@ def sanitize_filename(name: str) -> str:
     )
 
 
-def add_cookies_to_cmd(cmd: list):
+def add_cookies_to_cmd(cmd: list[str]) -> None:
     """
     检查项目根目录下以 .cookie 结尾的文件，如果存在，使用第一个添加到 cmd 中（--cookies 参数）。
     位置插入在 cmd[1] 前（通常在 --proxy 之前）。

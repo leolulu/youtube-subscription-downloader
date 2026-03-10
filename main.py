@@ -1,9 +1,12 @@
+import argparse
 import logging
 import os
 import shutil
 import signal
 import sys
+from types import FrameType
 
+from src.types import AppConfig, VideoInfo
 from src.config.config_reader import get_channel_ids, load_config
 from src.core.history_manager import has_records_for_channel, init_db, is_downloaded, log_download, mark_downloaded
 from src.core.scheduler import run_loop, setup_schedule
@@ -35,7 +38,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def filter_videos_by_anchor(videos, channel_id: str, is_first: bool):
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """解析命令行参数。"""
+    parser = argparse.ArgumentParser(description="YouTube 订阅视频下载器")
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="只执行一次检查和下载，完成后立即退出，不进入定时循环。",
+    )
+    return parser.parse_args(argv)
+
+
+def filter_videos_by_anchor(videos: list[VideoInfo], channel_id: str, is_first: bool) -> list[VideoInfo]:
     """
     基于动态锚点过滤视频列表。
 
@@ -67,7 +81,7 @@ def filter_videos_by_anchor(videos, channel_id: str, is_first: bool):
     return filtered_videos
 
 
-def check_and_download(config):
+def check_and_download(config: AppConfig) -> None:
     """
     检查并下载新视频的核心函数。
     """
@@ -128,12 +142,14 @@ def check_and_download(config):
             logger.info("临时目录已清理")
 
 
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: FrameType | None) -> None:
     logger.info("接收到停止信号，优雅关闭...")
     sys.exit(0)
 
 
-def main():
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+
     # 注册信号处理
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
@@ -148,8 +164,12 @@ def main():
     # 立即执行一次检查
     check_and_download(config)
 
+    if args.once:
+        logger.info("一次性模式执行完成，程序退出")
+        return
+
     # 设置定时任务
-    def wrapper():
+    def wrapper() -> None:
         check_and_download(config)
     setup_schedule(wrapper, config)
 

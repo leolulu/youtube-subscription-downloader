@@ -5,7 +5,15 @@ yt-dlp stderr 输出解析工具
 """
 
 import re
-from typing import Dict, List
+from typing import TypedDict
+
+
+class ParsedYtDlpStderr(TypedDict):
+    critical_errors: list[str]
+    ignorable_warnings: list[str]
+    summary: str
+    has_critical: bool
+    raw: str
 
 
 # 可忽略的错误模式（格式检查相关，不影响视频元数据获取）
@@ -61,7 +69,7 @@ CRITICAL_PATTERNS = [
 ]
 
 
-def parse_ytdlp_stderr(stderr: str) -> Dict:
+def parse_ytdlp_stderr(stderr: str) -> ParsedYtDlpStderr:
     """
     解析 yt-dlp 的 stderr 输出，分类错误类型
 
@@ -77,8 +85,8 @@ def parse_ytdlp_stderr(stderr: str) -> Dict:
             "raw": stderr                  # 原始内容
         }
     """
-    critical_errors: List[str] = []
-    ignorable_warnings: List[str] = []
+    critical_errors: list[str] = []
+    ignorable_warnings: list[str] = []
 
     lines = stderr.split("\n")
 
@@ -125,7 +133,7 @@ def parse_ytdlp_stderr(stderr: str) -> Dict:
     }
 
 
-def _generate_summary(critical_errors: List[str], ignorable_warnings: List[str]) -> str:
+def _generate_summary(critical_errors: list[str], ignorable_warnings: list[str]) -> str:
     """
     生成一行简短的摘要信息
     """

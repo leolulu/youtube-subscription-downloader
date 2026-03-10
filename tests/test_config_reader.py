@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import tempfile
 from unittest.mock import patch
 
@@ -15,9 +14,10 @@ class TestGetChannelIds:
         file_path = tmp_path / "channels.txt"
         assert not file_path.exists()
 
-        with patch("sys.exit") as mock_exit:
-            channel_ids = get_channel_ids(str(file_path))
-            mock_exit.assert_called_once_with(1)
+        with pytest.raises(SystemExit) as exc_info:
+            get_channel_ids(str(file_path))
+
+        assert exc_info.value.code == 1
 
         assert file_path.exists()
 
@@ -65,9 +65,10 @@ class TestLoadConfig:
         assert not file_path.exists()
         caplog.set_level(logging.INFO, logger="src.config.config_reader")
 
-        with patch("sys.exit") as mock_exit:
-            config = load_config(str(file_path))
-            mock_exit.assert_called_once_with(1)
+        with pytest.raises(SystemExit) as exc_info:
+            load_config(str(file_path))
+
+        assert exc_info.value.code == 1
 
         # 检查文件创建
         assert file_path.exists()
@@ -89,9 +90,10 @@ download_format = "test"
 """
         file_path.write_text(content, encoding="utf-8")
 
-        with patch("sys.exit") as mock_exit:
-            config = load_config(str(file_path))
-            mock_exit.assert_called_once_with(1)
+        with pytest.raises(SystemExit) as exc_info:
+            load_config(str(file_path))
+
+        assert exc_info.value.code == 1
 
         assert "缺少以下必需参数" in caplog.text
         assert "query_limit" in caplog.text
@@ -111,9 +113,10 @@ download_dir = "downloads"
 """
         file_path.write_text(content, encoding="utf-8")
 
-        with patch("sys.exit") as mock_exit:
-            config = load_config(str(file_path))
-            mock_exit.assert_called_once_with(1)
+        with pytest.raises(SystemExit) as exc_info:
+            load_config(str(file_path))
+
+        assert exc_info.value.code == 1
 
         assert "query_limit 必须是正整数" in caplog.text
 
@@ -131,9 +134,7 @@ download_dir = "downloads"
 """
         file_path.write_text(content, encoding="utf-8")
 
-        with patch("sys.exit") as mock_exit:
-            config = load_config(str(file_path))
-            mock_exit.assert_not_called()
+        config = load_config(str(file_path))
 
         assert isinstance(config, dict)
         assert config["query_limit"] == 50
@@ -145,9 +146,10 @@ download_dir = "downloads"
         content = "invalid_toml = ["  # 无效TOML
         file_path.write_text(content, encoding="utf-8")
 
-        with patch("sys.exit") as mock_exit:
-            config = load_config(str(file_path))
-            mock_exit.assert_called_once_with(1)
+        with pytest.raises(SystemExit) as exc_info:
+            load_config(str(file_path))
+
+        assert exc_info.value.code == 1
 
         assert "加载配置错误" in caplog.text
         assert "请检查 config.toml 文件格式是否正确" in caplog.text

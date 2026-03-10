@@ -1,10 +1,27 @@
 import logging
 import os
-import sys
 
 import tomlkit
 
+from src.types import AppConfig
+
 logger = logging.getLogger(__name__)
+
+
+def _require_positive_int(config: dict[str, object], key: str) -> int:
+    value = config[key]
+    if not isinstance(value, int) or value <= 0:
+        logger.error(f"{key} 必须是正整数，当前值: {value}")
+        raise SystemExit(1)
+    return value
+
+
+def _require_str(config: dict[str, object], key: str) -> str:
+    value = config[key]
+    if not isinstance(value, str):
+        logger.error(f"{key} 必须是字符串，当前值: {value}")
+        raise SystemExit(1)
+    return value
 
 
 def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
@@ -23,9 +40,9 @@ def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(placeholder_content)
         logger.info(f"已创建示例配置文件 {file_path}。请编辑添加您的频道ID，然后重新运行。")
-        sys.exit(1)
+        raise SystemExit(1)
 
-    channel_ids = []
+    channel_ids: list[str] = []
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -35,14 +52,14 @@ def get_channel_ids(file_path: str = "channels.txt") -> list[str]:
     return channel_ids
 
 
-def load_config(file_path: str = "config.toml") -> dict:
+def load_config(file_path: str = "config.toml") -> AppConfig:
     """
     加载TOML配置文件，返回配置字典。
     如果文件不存在，创建默认配置TOML，提示用户修改，然后中断程序。
     如果文件存在但缺少必需键，提示错误并中断程序。
     所有配置必须源于TOML文件，无硬编码默认值。
     """
-    required_keys = {
+    required_keys: dict[str, str] = {
         "query_limit": "整数，查询视频上限 (e.g., 50)",
         "first_run_limit": "整数，首次运行限制 (e.g., 10)",
         "interval_min": "整数，定时间隔分钟 (e.g., 30)",
@@ -52,7 +69,7 @@ def load_config(file_path: str = "config.toml") -> dict:
         "download_dir": "字符串，下载目录路径 (e.g., 'downloads' 或 '\\\\192.168.1.100\\share')",
     }
 
-    default_config = {
+    default_config: AppConfig = {
         "query_limit": 10,
         "first_run_limit": 5,
         "interval_min": 1440,
@@ -69,11 +86,11 @@ def load_config(file_path: str = "config.toml") -> dict:
         logger.info(f"已创建默认配置文件 {file_path}。")
         logger.info("请编辑 config.toml 文件，设置您的配置参数，然后重新运行程序。")
         logger.info("必需参数: " + ", ".join(required_keys.keys()))
-        sys.exit(1)
+        raise SystemExit(1)
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
-            config = tomlkit.parse(f.read())
+            config = tomlkit.parse(f.read()).unwrap()
 
         # 验证所有必需键是否存在
         missing_keys = [key for key in required_keys if key not in config]
@@ -83,21 +100,20 @@ def load_config(file_path: str = "config.toml") -> dict:
             for key, desc in required_keys.items():
                 if key in missing_keys:
                     logger.error(f"  {key} = {default_config[key]}  # {desc}")
-            sys.exit(1)
+            raise SystemExit(1)
 
-        # 类型验证（简单检查）
-        for key, value in config.items():
-            if key in ["query_limit", "first_run_limit", "interval_min", "max_retries"]:
-                if not isinstance(value, int) or value <= 0:
-                    logger.error(f"{key} 必须是正整数，当前值: {value}")
-                    sys.exit(1)
-            elif key in ["download_format", "proxy", "download_dir"]:
-                if not isinstance(value, str):
-                    logger.error(f"{key} 必须是字符串，当前值: {value}")
-                    sys.exit(1)
+        validated_config: AppConfig = {
+            "query_limit": _require_positive_int(config, "query_limit"),
+            "first_run_limit": _require_positive_int(config, "first_run_limit"),
+            "interval_min": _require_positive_int(config, "interval_min"),
+            "download_format": _require_str(config, "download_format"),
+            "max_retries": _require_positive_int(config, "max_retries"),
+            "proxy": _require_str(config, "proxy"),
+            "download_dir": _require_str(config, "download_dir"),
+        }
 
-        return dict(config)  # 转换为普通dict
+        return validated_config
     except Exception as e:
         logger.error(f"加载配置错误: {e}")
         logger.error("请检查 config.toml 文件格式是否正确 (TOML 格式)。")
-        sys.exit(1)
+        raise SystemExit(1)
