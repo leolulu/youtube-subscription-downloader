@@ -149,7 +149,7 @@
 project/
 ├── main.py                  # 入口，整合+调度+日志+信号处理
 ├── pytest.ini               # pytest配置
-├── requirements.txt         # 依赖
+├── pyproject.toml           # 依赖（uv/PEP 621 + PEP 735）
 ├── channels.txt             # 配置（.gitignore）
 ├── config.toml              # 配置（.gitignore）
 ├── download_history.db      # 生成（.gitignore）

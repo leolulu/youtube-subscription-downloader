@@ -1,0 +1,20 @@
+[project]
+name = "youtube-subscription-downloader"
+version = "0.1.0"
+description = "Monitor YouTube channel subscriptions and download new videos using yt-dlp."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "schedule",
+  "tomlkit",
+  "yt-dlp",
+]
+
+[dependency-groups]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+
+[tool.uv]
+default-groups = ["dev"]

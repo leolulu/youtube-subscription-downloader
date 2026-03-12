@@ -31,11 +31,11 @@
    cd youtube-subscription-downloader
    ```
 
-2. 安装 Python 依赖（推荐使用 `uv` 或 `pip`）：
+2. 安装 Python 依赖（推荐使用 `uv` + `pyproject.toml`）：
    ```
-   uv pip install -r requirements.txt
-   # 或
-   pip install -r requirements.txt
+   uv sync
+   # 仅安装运行时依赖（不含测试/开发依赖）：
+   # uv sync --no-dev
    ```
 
 3. 更新 `yt-dlp`：
@@ -119,7 +119,9 @@
 ## 测试
 运行单元测试（覆盖核心逻辑，如配置解析、数据库操作、mock 下载）：
 ```
-pytest -v --cov=. --cov-report=term-missing
+uv run pytest
+# 或（等价于 pytest.ini 中的 addopts）：
+# uv run pytest -v --cov=. --cov-report=term-missing
 ```
 - 测试使用 mock（subprocess, sqlite3 in-memory），无需真实 YouTube 访问。
 - 覆盖率报告显示缺失行，便于维护。

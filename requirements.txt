@@ -1,5 +1,0 @@
-yt-dlp
-schedule
-tomlkit
-pytest
-pytest-cov
