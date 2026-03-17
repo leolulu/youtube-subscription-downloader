@@ -4,8 +4,7 @@ import subprocess
 import time
 
 from src.types import QueryConfig, VideoInfo
-from src.utils.stderr_parser import parse_ytdlp_stderr
-from src.utils.stderr_parser import ParsedYtDlpStderr
+from src.utils.stderr_parser import ParsedYtDlpStderr, parse_ytdlp_stderr
 from src.utils.utils import add_cookies_to_cmd
 
 logger = logging.getLogger(__name__)
@@ -42,12 +41,19 @@ def get_videos(channel_id: str, is_first: bool, config: QueryConfig) -> list[Vid
 
     for attempt in range(max_retries):
         logger.debug(f"Querying channel {channel_id} command: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
         output = result.stdout.strip()
 
         if result.returncode != 0:
-            # 解析 stderr
-            stderr_info = parse_ytdlp_stderr(result.stderr)
+            # 解析 stderr（Windows 环境下可能为 None）
+            stderr_info = parse_ytdlp_stderr(result.stderr or "")
             last_stderr_info = stderr_info
 
             # 详细的 stderr 内容只记录到日志文件（DEBUG 级别）
